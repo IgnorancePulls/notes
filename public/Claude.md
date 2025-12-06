@@ -1,0 +1,1 @@
+This folder holds static files that are served directly without processing by the build tool (e.g., Vite). These include the main HTML template and assets like icons, which are accessible at the root URL of the app.
