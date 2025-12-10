@@ -11,6 +11,7 @@ import { useNavigate,useParams } from 'react-router-dom';
 import { Spinner } from '@/components/Spinner';
 
 import { ConfirmModal } from '@/components/ConfirmModal';
+import { MentionEditor } from '@/components/MentionEditor';
 import { NoteNotFound } from '@/components/NoteNotFound';
 import { NOTE_INITIAL_STATE,NOTE_STATUS_NEW } from '@/constants/notes';
 import { useNotes } from '@/context/notesContext';
@@ -175,11 +176,10 @@ export function EditPage() {
         className="w-full text-2xl font-semibold border-0 border-b border-gray-200 pb-2 mb-4 focus:outline-none focus:border-blue-500 bg-transparent"
       />
 
-      <textarea
-        value={note?.text}
-        onChange={(e) => handleChange('text', e.target.value)}
+      <MentionEditor
+        value={note?.text || ''}
+        onChange={(html) => handleChange('text', html)}
         placeholder="Start writing..."
-        className="w-full min-h-[400px] resize-none border border-gray-200 rounded-lg p-4 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
       />
 
       <ConfirmModal
