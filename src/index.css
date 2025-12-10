@@ -4,4 +4,23 @@
 
 body {
   @apply bg-gray-50 text-gray-900 min-h-screen;
+  min-width: 1024px;
+}
+
+/* Mention styling */
+.mention {
+  cursor: default;
+  user-select: all;
+  white-space: nowrap;
+}
+
+.mention:hover {
+  background-color: rgb(219 234 254);
+}
+
+/* Contenteditable placeholder support */
+[contenteditable]:empty:before {
+  content: attr(data-placeholder);
+  color: rgb(156 163 175);
+  pointer-events: none;
 }

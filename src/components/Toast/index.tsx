@@ -1,6 +1,8 @@
 import { CheckCircleIcon, XCircleIcon,XMarkIcon } from '@heroicons/react/24/solid';
 import { useEffect } from 'react';
 
+import { TOAST_DURATION_MS } from '@/constants/timing';
+
 interface ToastProps {
   message: string;
   type: 'error' | 'success';
@@ -9,7 +11,7 @@ interface ToastProps {
 
 const Toast = ({ message, type, onClose }: ToastProps)=> {
   useEffect(() => {
-    const timer = setTimeout(onClose, 4000);
+    const timer = setTimeout(onClose, TOAST_DURATION_MS);
     return () => clearTimeout(timer);
   }, [onClose]);
 

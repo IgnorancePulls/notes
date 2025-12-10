@@ -1,12 +1,12 @@
 import { DocumentTextIcon,PlusIcon } from '@heroicons/react/24/outline';
 import { useEffect,useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ErrorPage } from "@/components/ErrorPage";
-import { Spinner } from '@/components/Spinner';
 
 import { ConfirmModal } from '@/components/ConfirmModal';
-import { NoteCard } from '@/components/NoteCard';
+import { ErrorPage } from "@/components/ErrorPage";
+import { Spinner } from '@/components/Spinner';
 import { useNotes } from '@/context/notesContext';
+import { NoteCard } from '@/features/notes';
 import type { Note } from '@/types/note';
 
 export function HomePage() {

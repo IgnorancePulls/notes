@@ -50,8 +50,8 @@ describe('Notes App', () => {
     cy.contains('New Note').click();
     cy.url().should('include', '/edit/new');
 
-    cy.get('input[placeholder="Title"]').type('Test Note');
-    cy.get('textarea').type('This is test content');
+    cy.get('[data-cy="note-title-input"]').type('Test Note');
+    cy.get('[data-cy="mention-editor-input"]').type('This is test content');
 
     cy.wait('@createNote');
     cy.contains('Saved at').should('be.visible');
@@ -123,12 +123,12 @@ describe('Notes App', () => {
     }).as('updateNote');
 
     cy.contains('Edit Test').parent().parent().trigger('mouseover');
-    cy.get('[aria-label="Edit note"]').first().click();
+    cy.get('[data-cy="edit-note-button"]').first().click();
 
     cy.wait('@getNote');
 
-    cy.get('input[placeholder="Title"]').clear().type('Updated Title');
-    cy.wait('@createNote');
+    cy.get('[data-cy="note-title-input"]').clear().type('Updated Title');
+    cy.wait('@updateNote');
 
     cy.intercept('GET', '**/notes', {
       statusCode: 200,
@@ -188,7 +188,7 @@ describe('Notes App', () => {
     }).as('getNotesAfterDelete');
 
     cy.contains('Delete Test').parent().parent().trigger('mouseover');
-    cy.get('[aria-label="Delete note"]').first().click();
+    cy.get('[data-cy="delete-note-button"]').first().click();
 
     cy.contains('Delete Note?').should('be.visible');
     cy.contains('button', 'Delete').click();
@@ -224,7 +224,7 @@ describe('Notes App', () => {
     }).as('getNote');
 
     cy.contains('Delete From Edit').parent().parent().trigger('mouseover');
-    cy.get('[aria-label="Edit note"]').first().click();
+    cy.get('[data-cy="edit-note-button"]').first().click();
 
     cy.wait('@getNote');
 
@@ -246,7 +246,7 @@ describe('Notes App', () => {
       body: [],
     }).as('getNotesAfterDelete');
 
-    cy.get('[aria-label="Delete note"]').click();
+    cy.get('[data-cy="delete-note-button"]').click();
     cy.contains('button', 'Delete').click();
 
     cy.wait('@deleteNote');
@@ -312,7 +312,7 @@ describe('Notes App', () => {
     }).as('updateNote');
 
     cy.contains('New Note').click();
-    cy.get('input[placeholder="Title"]').type('Manual Save Test');
+    cy.get('[data-cy="note-title-input"]').type('Manual Save Test');
 
     cy.contains('button', 'Save').click();
     cy.contains('Saving...').should('be.visible');

@@ -7,7 +7,7 @@ export interface NotesContextValue {
   fetchNotes: () => Promise<void>;
   fetchNoteById: (id: string) => Promise<Note | null>;
   createNote: (note: Note) => Promise<Note>;
-  updateNote: (note: Note) => Promise<void>;
+  updateNote: (note: Note) => Promise<Note>;
   deleteNote: (note: Note) => Promise<void>;
 }
 

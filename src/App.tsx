@@ -1,9 +1,11 @@
 import { BrowserRouter, Route,Routes } from 'react-router-dom';
 
+import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { Toast } from '@/components/Toast';
 import { NotesProvider } from '@/context/NotesProvider';
 import { useToast } from '@/context/toastContext';
 import { ToastProvider } from '@/context/ToastProvider';
+import { UsersProvider } from '@/context/UsersProvider';
 import { EditPage } from '@/pages/EditPage';
 import { HomePage } from '@/pages/HomePage';
 import { NotFoundPage } from '@/pages/NotFoundPage';
@@ -29,12 +31,16 @@ function AppContent() {
 
 export default function App() {
   return (
-    <BrowserRouter>
-      <ToastProvider>
-        <NotesProvider>
-          <AppContent />
-        </NotesProvider>
-      </ToastProvider>
-    </BrowserRouter>
+    <ErrorBoundary>
+      <BrowserRouter>
+        <ToastProvider>
+          <UsersProvider>
+            <NotesProvider>
+              <AppContent />
+            </NotesProvider>
+          </UsersProvider>
+        </ToastProvider>
+      </BrowserRouter>
+    </ErrorBoundary>
   );
 }

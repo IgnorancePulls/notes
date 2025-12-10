@@ -8,13 +8,15 @@ import { format } from 'date-fns';
 import { debounce } from "lodash";
 import { useCallback, useEffect, useMemo,useState } from 'react';
 import { useNavigate,useParams } from 'react-router-dom';
-import { Spinner } from '@/components/Spinner';
 
 import { ConfirmModal } from '@/components/ConfirmModal';
 import { NoteNotFound } from '@/components/NoteNotFound';
+import { Spinner } from '@/components/Spinner';
 import { NOTE_INITIAL_STATE,NOTE_STATUS_NEW } from '@/constants/notes';
+import { AUTO_SAVE_DEBOUNCE_MS } from '@/constants/timing';
 import { useNotes } from '@/context/notesContext';
 import { useToast } from '@/context/toastContext';
+import { MentionEditor } from '@/features/mention-editor';
 import type { Note } from '@/types/note';
 
 export function EditPage() {
@@ -68,7 +70,8 @@ export function EditPage() {
         const newNote = await createNote(noteToSave);
         setNote(newNote);
       } else {
-        await updateNote(noteToSave);
+        const updatedNote = await updateNote(noteToSave);
+        setNote(updatedNote);
       }
     } catch {
       showToast('Failed to save note', 'error');
@@ -79,7 +82,7 @@ export function EditPage() {
   }, [createNote, updateNote, showToast]);
 
   const debouncedAutoSave = useMemo(
-    () => debounce(saveNote, 2000),
+    () => debounce(saveNote, AUTO_SAVE_DEBOUNCE_MS),
     [saveNote]
   );
 
@@ -108,9 +111,12 @@ export function EditPage() {
   };
 
   const handleBack = async () => {
+    debouncedAutoSave.cancel();
+
     if (note?.title || note?.text) {
       await handleSave();
     }
+
     navigate('/');
   };
 
@@ -160,6 +166,7 @@ export function EditPage() {
               onClick={() => setDeleteModalOpen(true)}
               className="p-2 rounded-full hover:bg-red-100 transition"
               aria-label="Delete note"
+              data-cy="delete-note-button"
             >
               <TrashIcon className="w-5 h-5 text-gray-600 hover:text-red-500" />
             </button>
@@ -172,14 +179,15 @@ export function EditPage() {
         value={note?.title}
         onChange={(e) => handleChange('title', e.target.value)}
         placeholder="Title"
+        data-cy="note-title-input"
         className="w-full text-2xl font-semibold border-0 border-b border-gray-200 pb-2 mb-4 focus:outline-none focus:border-blue-500 bg-transparent"
       />
 
-      <textarea
-        value={note?.text}
-        onChange={(e) => handleChange('text', e.target.value)}
+      <MentionEditor
+        key={note?.id || 'new-note'}
+        defaultValue={note?.text || ''}
+        onChange={(html) => handleChange('text', html)}
         placeholder="Start writing..."
-        className="w-full min-h-[400px] resize-none border border-gray-200 rounded-lg p-4 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
       />
 
       <ConfirmModal

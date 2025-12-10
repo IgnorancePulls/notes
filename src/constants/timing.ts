@@ -1,0 +1,2 @@
+export const AUTO_SAVE_DEBOUNCE_MS = 2000;
+export const TOAST_DURATION_MS = 4000;

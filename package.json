@@ -6,27 +6,41 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
+    "type-check": "tsc -b --noEmit",
     "lint": "eslint .",
     "preview": "vite preview",
+    "test": "vitest",
+    "test:coverage": "vitest run --coverage",
     "cy:open": "cypress open",
-    "cy:run": "cypress run"
+    "cy:run": "cypress run",
+    "cy:coverage": "start-server-and-test dev http://localhost:5173 cy:run:coverage",
+    "cy:run:coverage": "cypress run --browser chrome",
+    "coverage:merge": "nyc merge ./coverage/vitest ./coverage/.nyc_output && nyc merge ./coverage/cypress ./coverage/.nyc_output",
+    "coverage:report": "nyc report --reporter=html --reporter=lcov --reporter=text --reporter=json-summary",
+    "coverage:combined": "npm run test:coverage && npm run cy:coverage && npm run coverage:merge && npm run coverage:report",
+    "coverage:clean": "rm -rf ./coverage ./.nyc_output"
   },
   "dependencies": {
     "@heroicons/react": "^2.2.0",
     "axios": "^1.13.2",
     "date-fns": "^4.1.0",
+    "dompurify": "^3.3.1",
     "lodash": "^4.17.21",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
     "react-router-dom": "^7.10.1"
   },
   "devDependencies": {
+    "@cypress/code-coverage": "^3.14.7",
     "@eslint/js": "^9.39.1",
+    "@types/dompurify": "^3.0.5",
     "@types/lodash": "^4.17.21",
     "@types/node": "^24.10.1",
     "@types/react": "^19.2.5",
     "@types/react-dom": "^19.2.3",
     "@vitejs/plugin-react": "^5.1.1",
+    "@vitest/coverage-v8": "^4.0.15",
+    "@vitest/ui": "^4.0.15",
     "autoprefixer": "^10.4.22",
     "cypress": "^15.7.1",
     "eslint": "^9.39.1",
@@ -34,10 +48,15 @@
     "eslint-plugin-react-refresh": "^0.4.24",
     "eslint-plugin-simple-import-sort": "^12.1.1",
     "globals": "^16.5.0",
+    "jsdom": "^27.3.0",
+    "nyc": "^17.1.0",
     "postcss": "^8.5.6",
+    "start-server-and-test": "^2.1.3",
     "tailwindcss": "^3.4.18",
     "typescript": "~5.9.3",
     "typescript-eslint": "^8.46.4",
-    "vite": "^7.2.4"
+    "vite": "^7.2.4",
+    "vite-plugin-istanbul": "^7.2.1",
+    "vitest": "^4.0.15"
   }
 }
