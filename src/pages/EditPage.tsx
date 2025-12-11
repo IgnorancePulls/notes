@@ -177,7 +177,8 @@ export function EditPage() {
       />
 
       <MentionEditor
-        value={note?.text || ''}
+        key={note?.id || 'new-note'}
+        defaultValue={note?.text || ''}
         onChange={(html) => handleChange('text', html)}
         placeholder="Start writing..."
       />

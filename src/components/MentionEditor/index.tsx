@@ -1,24 +1,28 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { User } from '@/types/user';
 import { useUsers } from '@/hooks/useUsers';
 import { MentionDropdown } from './MentionDropdown';
 import { MENTION_TRIGGER, EMPTY_SPACES_CHAR_CODES } from '@/constants/mentions';
-import {
-  getCaretPosition,
-  getTextBeforeCaret,
-  shouldTriggerMention,
-  getQueryFromText,
-} from './mentionUtils';
+// import {
+//   // getCaretPosition,
+//   // getTextBeforeCaret,
+//   // getQueryFromText,
+// } from './mentionUtils';
+// import { filterUsers} from '@/utils/filterUsers';
+// import { getCaretPosition} from '@/utils/getCaretPosition';
+// import { getTextBeforeCaret} from '@/utils/getTextBeforeCaret';
+// import { getQueryFromText} from '@/utils/getQueryFromText';
+import { filterUsers, getCaretPosition, getTextBeforeCaret, getQueryFromText } from '@/utils';
 
 interface MentionEditorProps {
-  value: string;
+  defaultValue?: string;
   onChange: (html: string) => void;
   placeholder?: string;
   className?: string;
 }
 
 export const MentionEditor = ({
-  value,
+  defaultValue = '',
   onChange,
   placeholder = 'Start writing...',
   className = '',
@@ -30,54 +34,19 @@ export const MentionEditor = ({
   const [dropdownPosition, setDropdownPosition] = useState({ top: 0, left: 0 });
   const { users, refetch } = useUsers();
 
-  const filteredUsersCount = users
-    ? users.filter(
-        (u) =>
-          u.username.toLowerCase().includes(query.toLowerCase()) ||
-          u.first_name.toLowerCase().includes(query.toLowerCase()) ||
-          u.last_name.toLowerCase().includes(query.toLowerCase())
-      ).length
-    : 0;
-  const maxIndex = Math.min(filteredUsersCount, 5) - 1;
+  // Memoized filtered and sorted users (max 5 results)
+  const filteredUsers = useMemo(() => filterUsers(users, query), [users, query]);
 
-  // Update editor content when value prop changes (from parent component, not from user input)
+  const maxIndex = filteredUsers.length - 1;
+
+  // Initialize editor content on mount only
   useEffect(() => {
-    if (!editorRef.current) return;
+    if (!editorRef.current || editorRef.current.innerHTML) return;
 
-    // Only update if the content is different (to avoid disrupting user input)
-    if (editorRef.current.innerHTML !== value) {
-      const selection = window.getSelection();
-      const hadFocus = document.activeElement === editorRef.current;
-
-      // Save cursor position
-      let cursorOffset = 0;
-      if (selection && selection.rangeCount > 0 && hadFocus) {
-        const range = selection.getRangeAt(0);
-        cursorOffset = range.startOffset;
-      }
-
-      // Update content
-      editorRef.current.innerHTML = value;
-
-      // Restore cursor position if editor had focus
-      if (hadFocus && editorRef.current.firstChild) {
-        const newRange = document.createRange();
-        const sel = window.getSelection();
-
-        try {
-          const textNode = editorRef.current.firstChild;
-          const maxOffset = textNode.textContent?.length || 0;
-          newRange.setStart(textNode, Math.min(cursorOffset, maxOffset));
-          newRange.collapse(true);
-          sel?.removeAllRanges();
-          sel?.addRange(newRange);
-        } catch (e) {
-          // If cursor restoration fails, just focus the editor
-          editorRef.current.focus();
-        }
-      }
+    if (defaultValue) {
+      editorRef.current.innerHTML = defaultValue;
     }
-  }, [value]);
+  }, [defaultValue]);
 
   // const handleBeforeInput = useCallback((e: React.CompositionEvent<HTMLDivElement>) => {
   //   if(e.data === MENTION_TRIGGER && !isDropdownOpen) {
@@ -170,41 +139,47 @@ export const MentionEditor = ({
     [onChange]
   );
 
+  const handleBackspaceMentionDeletion = useCallback(
+    (e: React.KeyboardEvent) => {
+      const selection = window.getSelection();
+      if (!selection || selection.rangeCount === 0) return;
+
+      const range = selection.getRangeAt(0);
+      if (!range.collapsed) return;
+
+      const container = range.startContainer;
+      let previousNode: Node | null = null;
+
+      if (container.nodeType === Node.TEXT_NODE && range.startOffset === 0) {
+        previousNode = container.previousSibling;
+      } else if (container.nodeType === Node.ELEMENT_NODE) {
+        const element = container as Element;
+        if (range.startOffset > 0) {
+          previousNode = element.childNodes[range.startOffset - 1];
+        }
+      }
+
+      if (
+        previousNode &&
+        previousNode.nodeType === Node.ELEMENT_NODE &&
+        (previousNode as Element).classList.contains('mention')
+      ) {
+        e.preventDefault();
+        previousNode.parentNode?.removeChild(previousNode);
+        if (editorRef.current) {
+          onChange(editorRef.current.innerHTML);
+        }
+      }
+    },
+    [onChange]
+  );
+
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent) => {
       console.log('handleKeyDown')
       if (!isDropdownOpen) {
         if (e.key === 'Backspace') {
-          const selection = window.getSelection();
-          console.log('selection', selection);
-          if (!selection || selection.rangeCount === 0) return;
-
-          const range = selection.getRangeAt(0);
-          if (!range.collapsed) return;
-
-          const container = range.startContainer;
-          let previousNode: Node | null = null;
-
-          if (container.nodeType === Node.TEXT_NODE && range.startOffset === 0) {
-            previousNode = container.previousSibling;
-          } else if (container.nodeType === Node.ELEMENT_NODE) {
-            const element = container as Element;
-            if (range.startOffset > 0) {
-              previousNode = element.childNodes[range.startOffset - 1];
-            }
-          }
-
-          if (
-            previousNode &&
-            previousNode.nodeType === Node.ELEMENT_NODE &&
-            (previousNode as Element).classList.contains('mention')
-          ) {
-            e.preventDefault();
-            previousNode.parentNode?.removeChild(previousNode);
-            if (editorRef.current) {
-              onChange(editorRef.current.innerHTML);
-            }
-          }
+          handleBackspaceMentionDeletion(e);
         }
         return;
       }
@@ -212,6 +187,7 @@ export const MentionEditor = ({
       switch (e.key) {
         case 'Backspace':
           const textBeforeCaret = getTextBeforeCaret();
+
           if (textBeforeCaret.endsWith('@')) {
             setIsDropdownOpen(false);
           }
@@ -235,32 +211,13 @@ export const MentionEditor = ({
         case 'Enter':
           e.preventDefault();
           e.stopPropagation();
-          if (users && maxIndex >= 0) {
-            const lowerQuery = query.toLowerCase();
-            const filtered = users
-              .filter(
-                (u) =>
-                  u.username.toLowerCase().includes(lowerQuery) ||
-                  u.first_name.toLowerCase().includes(lowerQuery) ||
-                  u.last_name.toLowerCase().includes(lowerQuery)
-              )
-              .sort((a, b) => {
-                const aUsername = a.username.toLowerCase().startsWith(lowerQuery);
-                const bUsername = b.username.toLowerCase().startsWith(lowerQuery);
-                if (aUsername && !bUsername) return -1;
-                if (!aUsername && bUsername) return 1;
-                return 0;
-              })
-              .slice(0, 5);
-
-            if (filtered[highlightedIndex]) {
-              insertMention(filtered[highlightedIndex]);
-            }
+          if (filteredUsers[highlightedIndex]) {
+            insertMention(filteredUsers[highlightedIndex]);
           }
           break;
       }
     },
-    [isDropdownOpen, maxIndex, users, query, highlightedIndex, insertMention, onChange]
+    [isDropdownOpen, maxIndex, filteredUsers, highlightedIndex, insertMention, handleBackspaceMentionDeletion]
   );
 
   const handleBlur = useCallback(() => {
