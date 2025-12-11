@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import type { User } from '@/types/user';
 import { useUsers } from '@/hooks/useUsers';
 import { MentionDropdown } from './MentionDropdown';
+import { MENTION_TRIGGER, EMPTY_SPACES_CHAR_CODES } from '@/constants/mentions';
 import {
   getCaretPosition,
   getTextBeforeCaret,
@@ -78,28 +79,59 @@ export const MentionEditor = ({
     }
   }, [value]);
 
+  // const handleBeforeInput = useCallback((e: React.CompositionEvent<HTMLDivElement>) => {
+  //   if(e.data === MENTION_TRIGGER && !isDropdownOpen) {
+  //     setIsDropdownOpen(false);
+  //   }
+  //   if (e.data === MENTION_TRIGGER && !isDropdownOpen) {
+  //     console.log('handleBeforeInput @ detected', isDropdownOpen);
+  //
+  //     const textBeforeCaret = getTextBeforeCaret();
+  //     // console.log('textBeforeCaret=', textBeforeCaret)
+  //     // console.log('textBeforeCaret === ""', textBeforeCaret === '');
+  //     // console.log('textBeforeCaret.endsWith(" ")', textBeforeCaret.endsWith(' '));
+  //     // console.log('textBeforeCaret.endsWith("\\n")', textBeforeCaret.endsWith('\n'));
+  //
+  //
+  //     console.log('last char code:', textBeforeCaret.charCodeAt(textBeforeCaret.length - 1));
+  //     const lastChar = textBeforeCaret.charCodeAt(textBeforeCaret.length - 1);
+  //
+  //     if ((textBeforeCaret === ''  || EMPTY_SPACES_CHAR_CODES.includes(lastChar)) &&  !isDropdownOpen) {
+  //
+  //       setDropdownPosition(getCaretPosition(editorRef));
+  //       console.log('set dropdown open!!!!');
+  //       setIsDropdownOpen(true);
+  //       setQuery('');
+  //       setHighlightedIndex(0);
+  //       refetch();
+  //     }
+  //   }
+  // }, [ refetch, isDropdownOpen ]);
+
   const handleInput = useCallback(() => {
     if (!editorRef.current) return;
 
-    const textBeforeCaret = getTextBeforeCaret();
+    // If dropdown is open, update the query
+    console.log('handleInput, isDropdownOpen=', isDropdownOpen);
 
-    if (shouldTriggerMention(textBeforeCaret)) {
+    if (isDropdownOpen) {
+      const textBeforeCaret = getTextBeforeCaret();
+
+      // if (shouldTriggerMention(textBeforeCaret)) {
+      //   const newQuery = getQueryFromText(textBeforeCaret);
+      //   setQuery(newQuery);
+      //   setHighlightedIndex(0);
+      // } else {
+      //   setIsDropdownOpen(false);
+      // }
+
       const newQuery = getQueryFromText(textBeforeCaret);
-
-      if (!isDropdownOpen) {
-        setDropdownPosition(getCaretPosition(editorRef));
-        setIsDropdownOpen(true);
-        refetch();
-      }
-
       setQuery(newQuery);
       setHighlightedIndex(0);
-    } else {
-      setIsDropdownOpen(false);
     }
 
     onChange(editorRef.current.innerHTML);
-  }, [isDropdownOpen, onChange, refetch]);
+  }, [isDropdownOpen, onChange]);
 
   const insertMention = useCallback(
     (user: User) => {
@@ -140,9 +172,11 @@ export const MentionEditor = ({
 
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent) => {
+      console.log('handleKeyDown')
       if (!isDropdownOpen) {
         if (e.key === 'Backspace') {
           const selection = window.getSelection();
+          console.log('selection', selection);
           if (!selection || selection.rangeCount === 0) return;
 
           const range = selection.getRangeAt(0);
@@ -176,6 +210,12 @@ export const MentionEditor = ({
       }
 
       switch (e.key) {
+        case 'Backspace':
+          const textBeforeCaret = getTextBeforeCaret();
+          if (textBeforeCaret.endsWith('@')) {
+            setIsDropdownOpen(false);
+          }
+          break;
         case 'Escape':
           e.preventDefault();
           e.stopPropagation();
@@ -236,15 +276,37 @@ export const MentionEditor = ({
     [insertMention]
   );
 
+
+  const handleBeforeInput = (e) => {
+    if(e.data === MENTION_TRIGGER && isDropdownOpen) {
+      return setIsDropdownOpen(false);
+    }
+
+    if (e.data === MENTION_TRIGGER) {
+      const textBeforeCaret = getTextBeforeCaret();
+      const lastChar = textBeforeCaret.charCodeAt(textBeforeCaret.length - 1);
+
+      if(textBeforeCaret === ''  || EMPTY_SPACES_CHAR_CODES.includes(lastChar)) {
+        setDropdownPosition(getCaretPosition(editorRef));
+        setIsDropdownOpen(true);
+        setQuery('');
+        setHighlightedIndex(0);
+        refetch();
+      }
+    }
+  }
+
   return (
     <div className="relative">
       <div
         ref={editorRef}
         contentEditable
+        onBeforeInput={handleBeforeInput}
         onInput={handleInput}
+        // onInput={handleInputTest}
         onKeyDown={handleKeyDown}
-        onBlur={handleBlur}
-        suppressContentEditableWarning
+        // onBlur={handleBlur}
+        // suppressContentEditableWarning
         data-placeholder={placeholder}
         className={`w-full min-h-[400px] overflow-y-auto border border-gray-200 rounded-lg p-4 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white ${className}`}
       />

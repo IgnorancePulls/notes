@@ -16,7 +16,6 @@ export const MentionDropdown = ({
   highlightedIndex,
   onSelect,
 }: MentionDropdownProps) => {
-  console.log('MentionDropdown')
   const dropdownRef = useRef<HTMLDivElement>(null);
   const { users, loading, error } = useUsers();
 
