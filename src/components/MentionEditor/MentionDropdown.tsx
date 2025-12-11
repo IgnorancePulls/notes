@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef } from 'react';
+import { forwardRef, useEffect, useMemo, useRef } from 'react';
 import { ArrowPathIcon } from '@heroicons/react/24/outline';
 import type { User } from '@/types/user';
 import { useUsers } from '@/hooks/useUsers';
@@ -10,13 +10,9 @@ interface MentionDropdownProps {
   onSelect: (user: User) => void;
 }
 
-export const MentionDropdown = ({
-  query,
-  position,
-  highlightedIndex,
-  onSelect,
-}: MentionDropdownProps) => {
-  const dropdownRef = useRef<HTMLDivElement>(null);
+export const MentionDropdown = forwardRef<HTMLDivElement, MentionDropdownProps>(
+  ({ query, position, highlightedIndex, onSelect }, ref) => {
+    const internalDropdownRef = useRef<HTMLDivElement>(null);
   const { users, loading, error } = useUsers();
 
   const filteredUsers = useMemo(() => {
@@ -42,17 +38,29 @@ export const MentionDropdown = ({
     return sorted.slice(0, 5);
   }, [users, query]);
 
-  useEffect(() => {
-    const highlightedEl = dropdownRef.current?.children[highlightedIndex] as HTMLElement;
-    highlightedEl?.scrollIntoView({ block: 'nearest' });
-  }, [highlightedIndex]);
+    useEffect(() => {
+      const highlightedEl = internalDropdownRef.current?.children[
+        highlightedIndex
+      ] as HTMLElement;
+      highlightedEl?.scrollIntoView({ block: 'nearest' });
+    }, [highlightedIndex]);
 
-  return (
-    <div
-      ref={dropdownRef}
-      className="absolute bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-y-auto z-50 w-64"
-      style={{ top: `${position.top}px`, left: `${position.left}px` }}
-    >
+    // Callback ref to set both forwarded ref and internal ref
+    const setRefs = (element: HTMLDivElement | null) => {
+      internalDropdownRef.current = element;
+      if (typeof ref === 'function') {
+        ref(element);
+      } else if (ref) {
+        ref.current = element;
+      }
+    };
+
+    return (
+      <div
+        ref={setRefs}
+        className="absolute bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-y-auto z-50 w-64"
+        style={{ top: `${position.top}px`, left: `${position.left}px` }}
+      >
       {loading && (
         <div className="p-4 text-center">
           <ArrowPathIcon className="w-5 h-5 text-blue-500 animate-spin mx-auto" />
@@ -76,7 +84,10 @@ export const MentionDropdown = ({
         filteredUsers.map((user, index) => (
           <div
             key={user.username}
-            onClick={() => onSelect(user)}
+            onMouseDown={(e) => {
+              e.preventDefault();
+              onSelect(user);
+            }}
             className={`px-4 py-2 cursor-pointer transition-colors ${
               index === highlightedIndex ? 'bg-blue-100' : 'hover:bg-gray-100'
             }`}
@@ -87,6 +98,9 @@ export const MentionDropdown = ({
             </div>
           </div>
         ))}
-    </div>
-  );
-};
+      </div>
+    );
+  }
+);
+
+MentionDropdown.displayName = 'MentionDropdown';

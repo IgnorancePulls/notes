@@ -1,4 +1,4 @@
-import { User } from '@/types/User';
+import type { User } from '@/types/user';
 
 import { MAX_MENTIONED_USERS } from '@/constants/mentions';
 

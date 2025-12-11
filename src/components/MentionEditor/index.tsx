@@ -3,15 +3,8 @@ import type { User } from '@/types/user';
 import { useUsers } from '@/hooks/useUsers';
 import { MentionDropdown } from './MentionDropdown';
 import { MENTION_TRIGGER, EMPTY_SPACES_CHAR_CODES } from '@/constants/mentions';
-// import {
-//   // getCaretPosition,
-//   // getTextBeforeCaret,
-//   // getQueryFromText,
-// } from './mentionUtils';
-// import { filterUsers} from '@/utils/filterUsers';
-// import { getCaretPosition} from '@/utils/getCaretPosition';
-// import { getTextBeforeCaret} from '@/utils/getTextBeforeCaret';
-// import { getQueryFromText} from '@/utils/getQueryFromText';
+import { Keys } from '@/constants/keyboard';
+
 import { filterUsers, getCaretPosition, getTextBeforeCaret, getQueryFromText } from '@/utils';
 
 interface MentionEditorProps {
@@ -28,18 +21,15 @@ export const MentionEditor = ({
   className = '',
 }: MentionEditorProps) => {
   const editorRef = useRef<HTMLDivElement>(null);
+  const dropdownRef = useRef<HTMLDivElement>(null);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [query, setQuery] = useState('');
   const [highlightedIndex, setHighlightedIndex] = useState(0);
   const [dropdownPosition, setDropdownPosition] = useState({ top: 0, left: 0 });
   const { users, refetch } = useUsers();
 
-  // Memoized filtered and sorted users (max 5 results)
   const filteredUsers = useMemo(() => filterUsers(users, query), [users, query]);
 
-  const maxIndex = filteredUsers.length - 1;
-
-  // Initialize editor content on mount only
   useEffect(() => {
     if (!editorRef.current || editorRef.current.innerHTML) return;
 
@@ -48,52 +38,33 @@ export const MentionEditor = ({
     }
   }, [defaultValue]);
 
-  // const handleBeforeInput = useCallback((e: React.CompositionEvent<HTMLDivElement>) => {
-  //   if(e.data === MENTION_TRIGGER && !isDropdownOpen) {
-  //     setIsDropdownOpen(false);
-  //   }
-  //   if (e.data === MENTION_TRIGGER && !isDropdownOpen) {
-  //     console.log('handleBeforeInput @ detected', isDropdownOpen);
-  //
-  //     const textBeforeCaret = getTextBeforeCaret();
-  //     // console.log('textBeforeCaret=', textBeforeCaret)
-  //     // console.log('textBeforeCaret === ""', textBeforeCaret === '');
-  //     // console.log('textBeforeCaret.endsWith(" ")', textBeforeCaret.endsWith(' '));
-  //     // console.log('textBeforeCaret.endsWith("\\n")', textBeforeCaret.endsWith('\n'));
-  //
-  //
-  //     console.log('last char code:', textBeforeCaret.charCodeAt(textBeforeCaret.length - 1));
-  //     const lastChar = textBeforeCaret.charCodeAt(textBeforeCaret.length - 1);
-  //
-  //     if ((textBeforeCaret === ''  || EMPTY_SPACES_CHAR_CODES.includes(lastChar)) &&  !isDropdownOpen) {
-  //
-  //       setDropdownPosition(getCaretPosition(editorRef));
-  //       console.log('set dropdown open!!!!');
-  //       setIsDropdownOpen(true);
-  //       setQuery('');
-  //       setHighlightedIndex(0);
-  //       refetch();
-  //     }
-  //   }
-  // }, [ refetch, isDropdownOpen ]);
+  useEffect(() => {
+    if (!isDropdownOpen) return;
+
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as Node;
+
+      if (
+        dropdownRef.current &&
+        !dropdownRef.current.contains(target)
+      ) {
+        setIsDropdownOpen(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [isDropdownOpen]);
 
   const handleInput = useCallback(() => {
-    if (!editorRef.current) return;
-
-    // If dropdown is open, update the query
-    console.log('handleInput, isDropdownOpen=', isDropdownOpen);
+    if (!editorRef.current) {
+        return
+    }
 
     if (isDropdownOpen) {
       const textBeforeCaret = getTextBeforeCaret();
-
-      // if (shouldTriggerMention(textBeforeCaret)) {
-      //   const newQuery = getQueryFromText(textBeforeCaret);
-      //   setQuery(newQuery);
-      //   setHighlightedIndex(0);
-      // } else {
-      //   setIsDropdownOpen(false);
-      // }
-
       const newQuery = getQueryFromText(textBeforeCaret);
       setQuery(newQuery);
       setHighlightedIndex(0);
@@ -109,7 +80,7 @@ export const MentionEditor = ({
 
       const range = selection.getRangeAt(0);
       const textBeforeCaret = getTextBeforeCaret();
-      const atIndex = textBeforeCaret.lastIndexOf('@');
+      const atIndex = textBeforeCaret.lastIndexOf(MENTION_TRIGGER);
       const deleteCount = textBeforeCaret.length - atIndex;
 
       range.setStart(range.startContainer, range.startOffset - deleteCount);
@@ -120,7 +91,7 @@ export const MentionEditor = ({
         'mention inline-block bg-blue-100 text-blue-700 px-2 py-0.5 rounded font-medium mx-0.5';
       mentionSpan.contentEditable = 'false';
       mentionSpan.setAttribute('data-username', user.username);
-      mentionSpan.textContent = `@${user.username}`;
+      mentionSpan.textContent = `${MENTION_TRIGGER}${user.username}`;
 
       range.insertNode(mentionSpan);
 
@@ -174,83 +145,86 @@ export const MentionEditor = ({
     [onChange]
   );
 
-  const handleKeyDown = useCallback(
-    (e: React.KeyboardEvent) => {
-      console.log('handleKeyDown')
+  const handleArrowDown = (e: React.KeyboardEvent) => {
+        e.preventDefault();
+      const maxIndex = filteredUsers.length - 1;
+
+      setHighlightedIndex((prev) => Math.min(prev + 1, maxIndex));
+    }
+
+  const handleArrowUp =  (e: React.KeyboardEvent) => {
+      e.preventDefault();
+      setHighlightedIndex((prev) => Math.max(prev - 1, 0));
+  };
+
+  const handleEscape = (e: React.KeyboardEvent) => {
+      e.preventDefault();
+      e.stopPropagation();
+      setIsDropdownOpen(false);
+  }
+
+  const handleBackspaceWhenOpen = () => {
+      const textBeforeCaret = getTextBeforeCaret();
+      if (textBeforeCaret.endsWith(MENTION_TRIGGER)) {
+          setIsDropdownOpen(false);
+      }
+  }
+
+  const handleEnter =  (e: React.KeyboardEvent) => {
+      e.preventDefault();
+      e.stopPropagation();
+      if (filteredUsers[highlightedIndex]) {
+          insertMention(filteredUsers[highlightedIndex]);
+      }
+  }
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
       if (!isDropdownOpen) {
-        if (e.key === 'Backspace') {
-          handleBackspaceMentionDeletion(e);
-        }
-        return;
+          if (e.key === Keys.BACKSPACE) {
+              handleBackspaceMentionDeletion(e);
+          }
+          return;
       }
 
       switch (e.key) {
-        case 'Backspace':
+          case Keys.ARROW_DOWN:
+              handleArrowDown(e);
+              break;
+          case Keys.ARROW_UP:
+              handleArrowUp(e);
+              break;
+          case Keys.ESCAPE:
+              handleEscape(e);
+              break;
+          case Keys.BACKSPACE:
+              handleBackspaceWhenOpen();
+              break;
+          case Keys.ENTER:
+              handleEnter(e);
+              break;
+      }
+  }
+
+  const handleBeforeInput = (e: React.FormEvent<HTMLDivElement>) => {
+      const inputEvent = e.nativeEvent as InputEvent;
+
+      if(inputEvent.data === MENTION_TRIGGER && isDropdownOpen) {
+       setIsDropdownOpen(false);
+       return;
+    }
+
+      if(inputEvent.data === MENTION_TRIGGER) {
           const textBeforeCaret = getTextBeforeCaret();
+          const lastChar = textBeforeCaret.charCodeAt(textBeforeCaret.length - 1);
 
-          if (textBeforeCaret.endsWith('@')) {
-            setIsDropdownOpen(false);
+          if(textBeforeCaret === ''  || EMPTY_SPACES_CHAR_CODES.includes(lastChar)) {
+              setDropdownPosition(getCaretPosition(editorRef));
+              setIsDropdownOpen(true);
+              setQuery('');
+              setHighlightedIndex(0);
+              refetch();
           }
-          break;
-        case 'Escape':
-          e.preventDefault();
-          e.stopPropagation();
-          setIsDropdownOpen(false);
-          break;
-
-        case 'ArrowDown':
-          e.preventDefault();
-          setHighlightedIndex((prev) => Math.min(prev + 1, maxIndex));
-          break;
-
-        case 'ArrowUp':
-          e.preventDefault();
-          setHighlightedIndex((prev) => Math.max(prev - 1, 0));
-          break;
-
-        case 'Enter':
-          e.preventDefault();
-          e.stopPropagation();
-          if (filteredUsers[highlightedIndex]) {
-            insertMention(filteredUsers[highlightedIndex]);
-          }
-          break;
       }
-    },
-    [isDropdownOpen, maxIndex, filteredUsers, highlightedIndex, insertMention, handleBackspaceMentionDeletion]
-  );
-
-  const handleBlur = useCallback(() => {
-    setTimeout(() => {
-      setIsDropdownOpen(false);
-    }, 150);
-  }, []);
-
-  const handleMentionSelect = useCallback(
-    (user: User) => {
-      insertMention(user);
-    },
-    [insertMention]
-  );
-
-
-  const handleBeforeInput = (e) => {
-    if(e.data === MENTION_TRIGGER && isDropdownOpen) {
-      return setIsDropdownOpen(false);
-    }
-
-    if (e.data === MENTION_TRIGGER) {
-      const textBeforeCaret = getTextBeforeCaret();
-      const lastChar = textBeforeCaret.charCodeAt(textBeforeCaret.length - 1);
-
-      if(textBeforeCaret === ''  || EMPTY_SPACES_CHAR_CODES.includes(lastChar)) {
-        setDropdownPosition(getCaretPosition(editorRef));
-        setIsDropdownOpen(true);
-        setQuery('');
-        setHighlightedIndex(0);
-        refetch();
-      }
-    }
   }
 
   return (
@@ -260,20 +234,18 @@ export const MentionEditor = ({
         contentEditable
         onBeforeInput={handleBeforeInput}
         onInput={handleInput}
-        // onInput={handleInputTest}
         onKeyDown={handleKeyDown}
-        // onBlur={handleBlur}
-        // suppressContentEditableWarning
         data-placeholder={placeholder}
         className={`w-full min-h-[400px] overflow-y-auto border border-gray-200 rounded-lg p-4 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white ${className}`}
       />
 
       {isDropdownOpen && (
         <MentionDropdown
+          ref={dropdownRef}
           query={query}
           position={dropdownPosition}
           highlightedIndex={highlightedIndex}
-          onSelect={handleMentionSelect}
+          onSelect={insertMention}
         />
       )}
     </div>
