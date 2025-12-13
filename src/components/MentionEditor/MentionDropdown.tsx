@@ -1,63 +1,21 @@
-import { forwardRef, useEffect, useMemo, useRef } from 'react';
+import { forwardRef } from 'react';
 import { ArrowPathIcon } from '@heroicons/react/24/outline';
 import type { User } from '@/types/user';
-import { useUsers } from '@/hooks/useUsers';
 
 interface MentionDropdownProps {
-  query: string;
+  users: User[];
+  loading: boolean;
+  error: Error | null;
   position: { top: number; left: number };
   highlightedIndex: number;
   onSelect: (user: User) => void;
 }
 
 export const MentionDropdown = forwardRef<HTMLDivElement, MentionDropdownProps>(
-  ({ query, position, highlightedIndex, onSelect }, ref) => {
-    const internalDropdownRef = useRef<HTMLDivElement>(null);
-  const { users, loading, error } = useUsers();
-
-  const filteredUsers = useMemo(() => {
-    if (!users) return [];
-
-    const lowerQuery = query.toLowerCase();
-
-    const matches = users.filter(
-      (user) =>
-        user.username.toLowerCase().includes(lowerQuery) ||
-        user.first_name.toLowerCase().includes(lowerQuery) ||
-        user.last_name.toLowerCase().includes(lowerQuery)
-    );
-
-    const sorted = matches.sort((a, b) => {
-      const aUsername = a.username.toLowerCase().startsWith(lowerQuery);
-      const bUsername = b.username.toLowerCase().startsWith(lowerQuery);
-      if (aUsername && !bUsername) return -1;
-      if (!aUsername && bUsername) return 1;
-      return 0;
-    });
-
-    return sorted.slice(0, 5);
-  }, [users, query]);
-
-    useEffect(() => {
-      const highlightedEl = internalDropdownRef.current?.children[
-        highlightedIndex
-      ] as HTMLElement;
-      highlightedEl?.scrollIntoView({ block: 'nearest' });
-    }, [highlightedIndex]);
-
-    // Callback ref to set both forwarded ref and internal ref
-    const setRefs = (element: HTMLDivElement | null) => {
-      internalDropdownRef.current = element;
-      if (typeof ref === 'function') {
-        ref(element);
-      } else if (ref) {
-        ref.current = element;
-      }
-    };
-
+  ({ users, loading, error, position, highlightedIndex, onSelect }, ref) => {
     return (
       <div
-        ref={setRefs}
+        ref={ref}
         className="absolute bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-y-auto z-50 w-64"
         style={{ top: `${position.top}px`, left: `${position.left}px` }}
       >
@@ -75,29 +33,33 @@ export const MentionDropdown = forwardRef<HTMLDivElement, MentionDropdownProps>(
         </div>
       )}
 
-      {!loading && !error && filteredUsers.length === 0 && (
+      {!loading && !error && users.length === 0 && (
         <div className="p-4 text-sm text-gray-500 text-center">No users found</div>
       )}
 
-      {!loading &&
-        !error &&
-        filteredUsers.map((user, index) => (
-          <div
-            key={user.username}
-            onMouseDown={(e) => {
-              e.preventDefault();
-              onSelect(user);
-            }}
-            className={`px-4 py-2 cursor-pointer transition-colors ${
-              index === highlightedIndex ? 'bg-blue-100' : 'hover:bg-gray-100'
-            }`}
-          >
-            <div className="font-medium text-sm">@{user.username}</div>
-            <div className="text-xs text-gray-600">
-              {user.first_name} {user.last_name}
-            </div>
-          </div>
-        ))}
+      {!loading && !error && users.length > 0 && (
+        <ul role="listbox" className="list-none p-0 m-0">
+          {users.map((user, index) => (
+            <li
+              key={user.username}
+              role="option"
+              aria-selected={index === highlightedIndex}
+              onMouseDown={(e) => {
+                e.preventDefault();
+                onSelect(user);
+              }}
+              className={`px-4 py-2 cursor-pointer transition-colors ${
+                index === highlightedIndex ? 'bg-blue-100' : 'hover:bg-gray-100'
+              }`}
+            >
+              <div className="font-medium text-sm">@{user.username}</div>
+              <div className="text-xs text-gray-600">
+                {user.first_name} {user.last_name}
+              </div>
+            </li>
+          ))}
+        </ul>
+      )}
       </div>
     );
   }

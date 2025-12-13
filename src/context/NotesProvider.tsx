@@ -54,6 +54,8 @@ export function NotesProvider({ children }: NotesProviderProps) {
     setNotes((prev) =>
       prev.map((prevNote) => (prevNote.id === note.id ? updatedNote : prevNote))
     );
+
+    return updatedNote;
   }, []);
 
   const deleteNote = useCallback(async (note: Note) => {

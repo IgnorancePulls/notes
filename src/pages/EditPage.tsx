@@ -69,7 +69,8 @@ export function EditPage() {
         const newNote = await createNote(noteToSave);
         setNote(newNote);
       } else {
-        await updateNote(noteToSave);
+        const updatedNote = await updateNote(noteToSave);
+        setNote(updatedNote);
       }
     } catch {
       showToast('Failed to save note', 'error');

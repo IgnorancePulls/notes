@@ -51,7 +51,7 @@ describe('Notes App', () => {
     cy.url().should('include', '/edit/new');
 
     cy.get('input[placeholder="Title"]').type('Test Note');
-    cy.get('textarea').type('This is test content');
+    cy.get('[contenteditable="true"]').type('This is test content');
 
     cy.wait('@createNote');
     cy.contains('Saved at').should('be.visible');
@@ -128,7 +128,7 @@ describe('Notes App', () => {
     cy.wait('@getNote');
 
     cy.get('input[placeholder="Title"]').clear().type('Updated Title');
-    cy.wait('@createNote');
+    cy.wait('@updateNote');
 
     cy.intercept('GET', '**/notes', {
       statusCode: 200,

@@ -26,7 +26,7 @@ export const MentionEditor = ({
   const [query, setQuery] = useState('');
   const [highlightedIndex, setHighlightedIndex] = useState(0);
   const [dropdownPosition, setDropdownPosition] = useState({ top: 0, left: 0 });
-  const { users, refetch } = useUsers();
+  const { users, loading, error, refetch } = useUsers();
 
   const filteredUsers = useMemo(() => filterUsers(users, query), [users, query]);
 
@@ -208,28 +208,29 @@ export const MentionEditor = ({
   const handleBeforeInput = (e: React.FormEvent<HTMLDivElement>) => {
       const inputEvent = e.nativeEvent as InputEvent;
 
-      if(inputEvent.data === MENTION_TRIGGER && isDropdownOpen) {
-       setIsDropdownOpen(false);
-       return;
-    }
+      if (inputEvent.data !== MENTION_TRIGGER) return;
 
-      if(inputEvent.data === MENTION_TRIGGER) {
-          const textBeforeCaret = getTextBeforeCaret();
-          const lastChar = textBeforeCaret.charCodeAt(textBeforeCaret.length - 1);
+      if (isDropdownOpen) {
+          setIsDropdownOpen(false);
+          return;
+      }
 
-          if(textBeforeCaret === ''  || EMPTY_SPACES_CHAR_CODES.includes(lastChar)) {
-              setDropdownPosition(getCaretPosition(editorRef));
-              setIsDropdownOpen(true);
-              setQuery('');
-              setHighlightedIndex(0);
-              refetch();
-          }
+      const textBeforeCaret = getTextBeforeCaret();
+      const lastChar = textBeforeCaret.charCodeAt(textBeforeCaret.length - 1);
+
+      if (textBeforeCaret === '' || EMPTY_SPACES_CHAR_CODES.includes(lastChar)) {
+          setDropdownPosition(getCaretPosition(editorRef));
+          setIsDropdownOpen(true);
+          setQuery('');
+          setHighlightedIndex(0);
+          refetch();
       }
   }
 
   return (
     <div className="relative">
       <div
+          data-testid="mention-editor"
         ref={editorRef}
         contentEditable
         onBeforeInput={handleBeforeInput}
@@ -242,7 +243,9 @@ export const MentionEditor = ({
       {isDropdownOpen && (
         <MentionDropdown
           ref={dropdownRef}
-          query={query}
+          users={filteredUsers}
+          loading={loading}
+          error={error}
           position={dropdownPosition}
           highlightedIndex={highlightedIndex}
           onSelect={insertMention}
