@@ -14,7 +14,6 @@ describe('getTextBeforeCaret', () => {
   };
 
   beforeEach(() => {
-    // Reset mocks before each test
     mockRange = {
       startContainer: document.createTextNode('hello world'),
       startOffset: 5,

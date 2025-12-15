@@ -1,6 +1,7 @@
 import axios from 'axios';
 import { type ReactNode,useCallback, useState } from 'react';
 
+import { sortNotesByDate } from '@/features/notes';
 import * as notesApi from '@/services/notesApi';
 import type { Note } from '@/types/note';
 
@@ -18,8 +19,9 @@ export function NotesProvider({ children }: NotesProviderProps) {
   const fetchNotes = useCallback(async () => {
     const data = await notesApi.fetchNotes();
     const activeNotes = data.filter((note) => !note.is_deleted);
+    const sortedNotes = sortNotesByDate(activeNotes);
 
-    setNotes(activeNotes);
+    setNotes(sortedNotes);
   }, []);
 
   const fetchNoteById = useCallback(async (id: string): Promise<Note | null> => {
@@ -46,16 +48,11 @@ export function NotesProvider({ children }: NotesProviderProps) {
   }, []);
 
   const updateNote = useCallback(async (note: Note) => {
-    const updatedNote = await notesApi.updateNote({
+    return await notesApi.updateNote({
       ...note,
       last_updated_at: new Date(),
     });
 
-    setNotes((prev) =>
-      prev.map((prevNote) => (prevNote.id === note.id ? updatedNote : prevNote))
-    );
-
-    return updatedNote;
   }, []);
 
   const deleteNote = useCallback(async (note: Note) => {
