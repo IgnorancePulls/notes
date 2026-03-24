@@ -13,7 +13,7 @@ export function HomePage() {
   const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(false);
   const [hasError, setHasError] = useState(false);
-  const { notes, fetchNotes, deleteNote } = useNotes();
+  const { notes, fetchNotes, deleteNote, createNote } = useNotes();
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [noteToDelete, setNoteToDelete] = useState<Note | null>(null);
 
@@ -27,6 +27,10 @@ export function HomePage() {
       await deleteNote(noteToDelete);
       setNoteToDelete(null);
     }
+  };
+
+  const handleDuplicate = async (note: Note) => {
+    await createNote({ ...note, title: `${note.title} (copy)` });
   };
 
   useEffect(() => {
@@ -78,6 +82,7 @@ export function HomePage() {
               note={note}
               onEdit={() => navigate(`/edit/${note.id}`)}
               onDelete={() => handleDelete(note)}
+              onDuplicate={() => handleDuplicate(note)}
             />
           ))}
         </div>
