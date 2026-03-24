@@ -1,4 +1,4 @@
-import { DocumentTextIcon,PlusIcon } from '@heroicons/react/24/outline';
+import { DocumentTextIcon, MagnifyingGlassIcon, PlusIcon } from '@heroicons/react/24/outline';
 import { useEffect,useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
@@ -16,6 +16,7 @@ export function HomePage() {
   const { notes, fetchNotes, deleteNote, createNote } = useNotes();
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [noteToDelete, setNoteToDelete] = useState<Note | null>(null);
+  const [search, setSearch] = useState('');
 
   const handleDelete = (note: Note) => {
     setNoteToDelete(note);
@@ -32,6 +33,11 @@ export function HomePage() {
   const handleDuplicate = async (note: Note) => {
     await createNote({ ...note, title: `${note.title} (copy)` });
   };
+
+  const filteredNotes = notes.filter((note) => {
+    const q = search.toLowerCase();
+    return note.title?.toLowerCase().includes(q) || note.text?.toLowerCase().includes(q);
+  });
 
   useEffect(() => {
     const loadNotes = async () => {
@@ -58,7 +64,7 @@ export function HomePage() {
 
   return (
     <div className="min-h-screen p-6 max-w-6xl mx-auto">
-      <header className="flex items-center justify-between mb-8">
+      <header className="flex items-center justify-between mb-6">
         <h1 className="text-3xl font-bold text-gray-900">Notes</h1>
         <button
           onClick={() => navigate('/edit/new')}
@@ -69,14 +75,30 @@ export function HomePage() {
         </button>
       </header>
 
+      <div className="relative mb-8">
+        <MagnifyingGlassIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+        <input
+          type="text"
+          placeholder="Search notes..."
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          className="w-full pl-9 pr-4 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-300"
+        />
+      </div>
+
       {notes.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-20 text-gray-500">
           <DocumentTextIcon className="w-16 h-16 mb-4" />
           <p className="text-xl">No notes yet. Create one!</p>
         </div>
+      ) : filteredNotes.length === 0 ? (
+        <div className="flex flex-col items-center justify-center py-20 text-gray-500">
+          <MagnifyingGlassIcon className="w-16 h-16 mb-4" />
+          <p className="text-xl">No notes match your search.</p>
+        </div>
       ) : (
         <div className="grid grid-cols-[repeat(auto-fit,minmax(280px,1fr))] gap-6">
-          {notes.map((note) => (
+          {filteredNotes.map((note) => (
             <NoteCard
               key={note.id}
               note={note}
