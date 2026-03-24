@@ -24,7 +24,7 @@ jobs:
 
       - name: Report coverage to DeepSource
         run: |
-          curl https://deepsource.io/cli | sh
+          curl -fsSL https://cli.deepsource.com/install | BINDIR=./bin sh
           ./bin/deepsource report \
             --analyzer test-coverage \
             --key javascript \
