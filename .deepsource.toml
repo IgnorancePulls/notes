@@ -1,0 +1,17 @@
+version = 1
+
+[[analyzers]]
+name = "javascript"
+enabled = true
+
+  [analyzers.meta]
+  environment = ["browser"]
+  module_system = "esm"
+  dialect = "jsx"
+
+[[analyzers]]
+name = "test-coverage"
+enabled = true
+
+  [analyzers.meta]
+  javascript_coverage_file = "coverage/vitest/lcov.info"
