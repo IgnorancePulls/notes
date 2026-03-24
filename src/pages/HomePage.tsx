@@ -65,7 +65,14 @@ export function HomePage() {
   return (
     <div className="min-h-screen p-6 max-w-6xl mx-auto">
       <header className="flex items-center justify-between mb-6">
-        <h1 className="text-3xl font-bold text-gray-900">Notes</h1>
+        <h1 className="text-3xl font-bold text-gray-900">
+          Notes
+          {notes.length > 0 && (
+            <span className="ml-3 text-sm font-medium bg-gray-100 text-gray-500 px-2 py-0.5 rounded-full">
+              {notes.length}
+            </span>
+          )}
+        </h1>
         <button
           onClick={() => navigate('/edit/new')}
           className="px-4 py-2 rounded bg-blue-500 text-white hover:bg-blue-600 transition flex items-center gap-2"
